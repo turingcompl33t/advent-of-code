@@ -30,4 +30,10 @@ Write your code and move it to the folder associated with the appropriate day. T
 
 Please only add source files to this repository; don't check-in any build artifacts or input files.
 
+Periodically, you should push your local copy of the repository to the remote:
+
+```
+git push -u origin my-branch-name
+```
+
 Once you've completed the puzzle for a particular day, merge your branch into `master` so everyone else can see your solution. The easiest way to accomplish this is by creating a pull request on Github in your browser.

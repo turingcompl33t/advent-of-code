@@ -12,9 +12,9 @@ def calculate_trees(coordinates, h_slope, v_slope):
     tree_counter = 0
     while (v_pos < len(coordinates)):
         if coordinates[v_pos][h_pos % width] == '#':
-            tree_counter = tree_counter + 1
-        h_pos = h_pos + h_slope
-        v_pos = v_pos + v_slope
+            tree_counter += 1
+        h_pos += h_slope
+        v_pos += v_slope
     return tree_counter  
 
 if __name__ == "__main__":

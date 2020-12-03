@@ -1,6 +1,6 @@
 # kyle_part1.py
 #
-# Advent of Code Day 3 Puzzle 1.
+# Advent of Code Day 3 Puzzle 2.
 
 import operator
 import functools

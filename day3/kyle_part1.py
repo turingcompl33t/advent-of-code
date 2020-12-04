@@ -10,7 +10,7 @@ def lines() -> str:
             yield line.strip()
 
 def main():
-    s = sum([line[(i*3)%len(line)] == "#" for i, line in enumerate(lines())])
+    s = sum([line[(i*3)%len(line)] is "#" for i, line in enumerate(lines())])
     print(f"Hit {s} trees, ouch")
 
 if __name__ == "__main__":

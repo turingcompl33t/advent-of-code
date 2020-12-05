@@ -9,14 +9,14 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     string input(argv[1]);
-    int count, i;
-    size_t numf;
+    int count = 0;
+    int i = 0;
     string line, re;
     vector<string> fields = {"byr", "iyr", "eyr", "hgt", "hcl","ecl", "pid", "cid"};
 
     //define each bit: {byr}{iyr}{eyr}{hgt}{hcl}{ecl}{pid}{cid}
     //if larger than 254, valid passport
-    int check;
+    int check = 0;
 
     ifstream fin(input);
 

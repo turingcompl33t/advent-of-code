@@ -16,16 +16,16 @@ int main(int argc, char* argv[]) {
     ifstream fin(input);
 
     while (getline(fin, line)) {
-      for(row = i = 0; i < ROW_CHARS; i++) 
+      for(row = 0, i = 0; i < ROW_CHARS; i++) 
          if (line[i] == 'B')
             row |= 1 << (ROW_CHARS-(1+i));
       
-      for(col = 0, i = ROW_CHARS; i < COL_CHARS; i++)
+      for(col = 0, i = ROW_CHARS; i < ROW_CHARS+COL_CHARS; i++)
          if (line[i] == 'R')
-            col |= 1 << (COL_CHARS-(1+i));
+            col |= 1 << (COL_CHARS-(1+i-ROW_CHARS));
       
       id = row*8 + col;
-      if (id > maxID) maxID = id;
+      if (id > maxID) maxID = id;   
     }
 
    cout << "Max ID: " << maxID << endl;

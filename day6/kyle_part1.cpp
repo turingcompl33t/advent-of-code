@@ -28,7 +28,6 @@ std::unique_ptr<std::vector<std::string>> read_groups()
 
     while (std::getline(file, line))
     {
-        //std::cout << line << std::endl;
         if (line == std::string{})
         {
             groups->push_back(build);

@@ -1,7 +1,7 @@
 """
-exp3.py
+part2.py
 
-Advent of Code 2023, Day 10, Part 2 experimentation.
+Advent of Code 2023, Day 10, Part 2.
 """
 
 from __future__ import annotations
@@ -82,6 +82,34 @@ class Maze:
         """Get the tile at the specified index."""
         return self.tiles[pos[0]][pos[1]]
 
+    def interpolate_tile(self, pos: tuple[int, int]) -> Tile:
+        """Interpolate the tile based on adjacent."""
+        row = pos[0]
+        col = pos[1]
+
+        adjacent = self.adjacent(row, col)
+        assert len(adjacent) == 2, "Broken invariant."
+
+        above = (row - 1, col)
+        below = (row + 1, col)
+        left = (row, col - 1)
+        right = (row, col + 1)
+
+        if above in adjacent and below in adjacent:
+            return Tile.VERTICAL_PIPE
+        if left in adjacent and right in adjacent:
+            return Tile.HORIZONTAL_PIPE
+        if above in adjacent and right in adjacent:
+            return Tile.BEND_NE
+        if above in adjacent and left in adjacent:
+            return Tile.BEND_NW
+        if below in adjacent and left in adjacent:
+            return Tile.BEND_SW
+        if below in adjacent and right in adjacent:
+            return Tile.BEND_SE
+
+        raise RuntimeError("failed to interpolate tile")
+
     def loop(self) -> set[tuple[int, int]]:
         """Return a list of indices of tiles on the main loop."""
         start_position = self.start_index()
@@ -94,6 +122,8 @@ class Maze:
 
         pos = adjacent[0]
         end = adjacent[1]
+
+        tiles.add(pos)
         while pos != end:
             adjacent = self.adjacent(*pos)
             assert len(adjacent) == 2, "Broken invariant."
@@ -108,29 +138,7 @@ class Maze:
                 tiles.add(a)
                 pos = a
 
-        tiles.add(end)
         return tiles
-
-    def casting_point(self, loop: set[tuple[int, int]]) -> tuple[int, int]:
-        """Compute a casting point."""
-        for j in range(len(self.tiles[0])):
-            if self.tile((0, j)) == Tile.GROUND and (0, j) not in loop:
-                return (0, j)
-            if (
-                self.tile((len(self.tiles) - 1, j)) == Tile.GROUND
-                and (len(self.tiles) - 1, j) not in loop
-            ):
-                return (len(self.tiles) - 1, j)
-        for i in range(len(self.tiles)):
-            if self.tile((i, 0)) == Tile.Ground and (i, 0) not in loop:
-                return (i, 0)
-            if (
-                self.tile((i, len(self.tiles[0]) - 1)) == Tile.Ground
-                and (i, len(self.tiles[0]) - 1) not in loop
-            ):
-                return (i, len(self.tiles[0]) - 1)
-
-        raise RuntimeError("no casting point found")
 
     def adjacent(self, i: int, j: int) -> list[tuple[int, int]]:
         """Return the adjacent tiles based on input tile."""
@@ -243,23 +251,107 @@ def adjacent_right(maze: Maze, i: int, j: int) -> Optional[tuple[int, int]]:
     return None
 
 
-def in_loop(
-    maze: Maze, loop: set[tuple[int, int]], cast: tuple[int, int], pos: tuple[int, int]
-) -> bool:
-    """Determine if a point is within the loop."""
-    # Begin at the casting point
-    point = cast
+class State(Enum):
+    """State for FSM."""
 
-    _in_loop = False
-    while point != pos:
-        pass
+    OUT = "out"
+    """Out of the loop."""
 
-    return _in_loop
+    IN_OPEN_EITHER = "open_either"
+    """Open in either direction."""
+
+    IN_OPEN_UP = "open_up"
+    """Open in upward direction."""
+
+    IN_OPEN_DOWN = "open_down"
+    """Open in downward direction."""
 
 
-def solve(path: Path) -> None:
+#  case "|":
+#     return Tile.VERTICAL_PIPE
+# case "-":
+#     return Tile.HORIZONTAL_PIPE
+# case "L":
+#     return Tile.BEND_NE
+# case "J":
+#     return Tile.BEND_NW
+# case "7":
+#     return Tile.BEND_SW
+# case "F":
+#     return Tile.BEND_SE
+# case ".":
+#     return Tile.GROUND
+
+
+def process_tile(
+    maze: Maze,
+    pos: tuple[int, int],
+    state: State,
+    loop: set[tuple[int, int]],
+    count: int,
+) -> tuple[State, int]:
+    """Process an individual tile."""
+    on_loop = pos in loop
+    inc_state = state in [State.IN_OPEN_UP, State.IN_OPEN_DOWN, State.IN_OPEN_EITHER]
+
+    new_state = state
+
+    tile = maze.tile(pos)
+
+    match tile:
+        case Tile.VERTICAL_PIPE:
+            if on_loop:
+                new_state = State.IN_OPEN_EITHER if not inc_state else state.OUT
+            else:
+                count = count + 1 if inc_state else count
+        case Tile.HORIZONTAL_PIPE:
+            if on_loop:
+                pass
+            else:
+                count = count + 1 if inc_state else count
+        case Tile.BEND_NE:
+            if on_loop:
+                new_state = State.OUT if inc_state else State.IN_OPEN_UP
+            else:
+                count = count + 1 if inc_state else count
+        case Tile.BEND_NW:
+            if on_loop:
+                new_state = State.OUT
+            else:
+                count = count + 1 if inc_state else count
+        case Tile.BEND_SW:
+            if on_loop:
+                new_state = State.OUT
+            else:
+                count = count + 1 if inc_state else count
+        case Tile.BEND_SE:
+            if on_loop:
+                new_state = State.OUT if inc_state else State.IN_OPEN_DOWN
+            else:
+                count = count + 1 if inc_state else count
+        case Tile.GROUND:
+            return state, count + 1 if inc_state else count
+
+    return new_state, count
+
+
+def compute_loop_area(maze: Maze, loop: set[tuple[int, int]]) -> int:
+    """Compute loop area."""
+    n_row = len(maze.tiles)
+    n_col = len(maze.tiles[0])
+
+    count = 0
+    state = State.OUT
+    for row in range(n_row):
+        for col in range(n_col):
+            state, count = process_tile(maze, (row, col), state, loop, count)
+
+    return count
+
+
+def solve(_path: Path) -> None:
     """Solve the puzzle."""
-    with path.open("r") as f:
+    with _path.open("r") as f:
         lines = f.readlines()
 
     # Parse the maze
@@ -268,13 +360,12 @@ def solve(path: Path) -> None:
     # Compute the maze primary loop
     loop = maze.loop()
 
-    # Compute a ray-casting point
-    cast = maze.casting_point(loop)
+    # Interpolate the maze start position
+    start_row, start_col = maze.start_index()
+    maze.tiles[start_row][start_col] = maze.interpolate_tile((start_row, start_col))
 
-    count = 0
-    for pos in maze.indices_of(Tile.GROUND):
-        if in_loop(maze, loop, cast):
-            count += 1
+    area = compute_loop_area(maze, loop)
+    print(area)
 
 
 def main() -> int:
